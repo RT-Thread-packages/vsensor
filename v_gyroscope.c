@@ -15,9 +15,8 @@
 #include "sensor.h"
 #include <stdlib.h>
 
-#define DBG_ENABLE
-#define DBG_SECTION_NAME    "v_gyro"
-#define DBG_LEVEL           DBG_LOG
+#define DBG_TAG    "v_gyro"
+#define DBG_LVL    DBG_INFO
 #include <rtdbg.h>
 
 enum SENS_GYRO_ID

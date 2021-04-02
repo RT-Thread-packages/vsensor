@@ -5,43 +5,43 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2020-12-19     zhangsz      add virtual sensor device
+ * 2021-04-01     stackRyan    add spo2 virtual sensor
  */
 
 #include <rtthread.h>
 
-#ifdef PKG_USING_VIRTUAL_SENSOR_HR
+#ifdef PKG_USING_VIRTUAL_SENSOR_SPO2
 
 #include "sensor.h"
 #include <stdlib.h>
 
-#define DBG_TAG    "v_hrate"
+#define DBG_TAG    "v_spo2"
 #define DBG_LVL    DBG_INFO
 #include <rtdbg.h>
 
-enum SENS_HR_ID
+enum SENS_SPO2_ID
 {
-    SENS_HR_01 = 0, //HeartRate
-    SENS_HR_MAX,
+    SENS_SPO2_01 = 0, //SPO2
+    SENS_SPO2_MAX,
 };
 
 #define SENS_BUS_NAME                   "sens_bus"
-#define SENS_HR_01_SENSOR_ID            (RT_SENSOR_CLASS_HR + 0x10)
+#define SENS_SPO2_01_SENSOR_ID            (RT_SENSOR_CLASS_SPO2 + 0x10)
 
-struct sens_hr
+struct sens_spo2
 {
     char* dev_name;
     rt_uint8_t sens_id;
 };
 
-static struct sens_hr sens_hr_tbl[SENS_HR_MAX] =
+static struct sens_spo2 sens_spo2_tbl[SENS_SPO2_MAX] =
 {
-    {V_SENS_HR_DEV_NAME,    0x00 }, /* HeartRate */
+    {V_SENS_SPO2_DEV_NAME,    0x00 }, /* SPO2 */
 };
 
-static struct rt_sensor_info hr_info_tbl[SENS_HR_MAX] =
+static struct rt_sensor_info spo2_info_tbl[SENS_SPO2_MAX] =
 {
-    {RT_SENSOR_CLASS_HR,  RT_SENSOR_VENDOR_STM,   RT_NULL,    RT_SENSOR_UNIT_BPM,      RT_SENSOR_INTF_UART,     200,   0,   1 },
+    {RT_SENSOR_CLASS_SPO2,  RT_SENSOR_VENDOR_UNKNOWN,   RT_NULL,    RT_SENSOR_UNIT_PERCENT,      RT_SENSOR_INTF_UART,     200,   0,   1 },
 };
 
 static rt_uint8_t sensor_get_id(rt_uint8_t sens_index)
@@ -50,8 +50,8 @@ static rt_uint8_t sensor_get_id(rt_uint8_t sens_index)
 
     switch (sens_index)
     {
-    case SENS_HR_01:
-        chip_id = SENS_HR_01_SENSOR_ID;
+    case SENS_SPO2_01:
+        chip_id = SENS_SPO2_01_SENSOR_ID;
         break;
     default:
         break;
@@ -62,7 +62,7 @@ static rt_uint8_t sensor_get_id(rt_uint8_t sens_index)
 
 static int sensor_init(rt_uint8_t index)
 {
-    sens_hr_tbl[index].sens_id = sensor_get_id(index);
+    sens_spo2_tbl[index].sens_id = sensor_get_id(index);
 
     return RT_EOK;
 }
@@ -95,28 +95,24 @@ static rt_err_t _sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
     return rslt;
 }
 
-static rt_size_t hr_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
+static rt_size_t spo2_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
 {
     struct rt_sensor_data* data = buf;
-    rt_int16_t max_range = 0;
 
-    max_range = hr_info_tbl[SENS_HR_01].range_max - hr_info_tbl[SENS_HR_01].range_min;
-    data->type = RT_SENSOR_CLASS_HR;
-    data->data.hr = rand() % max_range + hr_info_tbl[SENS_HR_01].range_min;
+    data->type = RT_SENSOR_CLASS_SPO2;
+    data->data.spo2 = 90 + rand() % 10;
     data->timestamp = rt_sensor_get_ts();
-    LOG_D("%s:%d", __func__, data->data.hr);
-
     return RT_EOK;
 }
 
-static rt_err_t hr_sensor_control(struct rt_sensor_device* sensor, int cmd, void* args)
+static rt_err_t spo2_sensor_control(struct rt_sensor_device* sensor, int cmd, void* args)
 {
     rt_err_t result = RT_EOK;
 
     switch (cmd)
     {
     case RT_SENSOR_CTRL_GET_ID:
-        *(rt_uint8_t*)args = sens_hr_tbl[SENS_HR_01].sens_id;
+        *(rt_uint8_t*)args = sens_spo2_tbl[SENS_SPO2_01].sens_id;
         break;
     case RT_SENSOR_CTRL_SET_ODR:
         result = _sensor_set_odr(sensor, (rt_uint32_t)args & 0xffff);
@@ -139,10 +135,10 @@ static rt_err_t hr_sensor_control(struct rt_sensor_device* sensor, int cmd, void
 
 static struct rt_sensor_ops sensor_ops[] =
 {
-    {hr_sensor_fetch_data, hr_sensor_control},
+    {spo2_sensor_fetch_data, spo2_sensor_control},
 };
 
-int rt_vd_sens_hr_init(void)
+int rt_vd_sens_spo2_init(void)
 {
     rt_int8_t result;
     rt_uint8_t index = 0;
@@ -153,7 +149,7 @@ int rt_vd_sens_hr_init(void)
     cfg.intf.user_data = RT_NULL;
     cfg.irq_pin.pin = RT_PIN_NONE;
 
-    for (index = 0; index < SENS_HR_MAX; index++)
+    for (index = 0; index < SENS_SPO2_MAX; index++)
     {
         _sensor_create(&cfg.intf, index);
         sensor_dat = rt_calloc(1, sizeof(struct rt_sensor_device));
@@ -163,19 +159,19 @@ int rt_vd_sens_hr_init(void)
             return -RT_ERROR;
         }
 
-        sensor_dat->info.type = hr_info_tbl[index].type;
-        sensor_dat->info.vendor = hr_info_tbl[index].vendor;
-        sensor_dat->info.model = hr_info_tbl[index].model;
-        sensor_dat->info.unit = hr_info_tbl[index].unit;
-        sensor_dat->info.intf_type = hr_info_tbl[index].intf_type;
-        sensor_dat->info.range_max = hr_info_tbl[index].range_max;
-        sensor_dat->info.range_min = hr_info_tbl[index].range_min;
-        sensor_dat->info.period_min = hr_info_tbl[index].period_min;
+        sensor_dat->info.type = spo2_info_tbl[index].type;
+        sensor_dat->info.vendor = spo2_info_tbl[index].vendor;
+        sensor_dat->info.model = spo2_info_tbl[index].model;
+        sensor_dat->info.unit = spo2_info_tbl[index].unit;
+        sensor_dat->info.intf_type = spo2_info_tbl[index].intf_type;
+        sensor_dat->info.range_max = spo2_info_tbl[index].range_max;
+        sensor_dat->info.range_min = spo2_info_tbl[index].range_min;
+        sensor_dat->info.period_min = spo2_info_tbl[index].period_min;
 
         rt_memcpy(&sensor_dat->config, &cfg, sizeof(struct rt_sensor_config));
         sensor_dat->ops = &sensor_ops[index];
 
-        result = rt_hw_sensor_register(sensor_dat, sens_hr_tbl[index].dev_name, RT_DEVICE_FLAG_RDWR, RT_NULL);
+        result = rt_hw_sensor_register(sensor_dat, sens_spo2_tbl[index].dev_name, RT_DEVICE_FLAG_RDWR, RT_NULL);
         if (result != RT_EOK)
         {
             LOG_E("device register err code: %d", result);
@@ -187,7 +183,7 @@ int rt_vd_sens_hr_init(void)
     return RT_EOK;
 }
 
-INIT_DEVICE_EXPORT(rt_vd_sens_hr_init);
+INIT_DEVICE_EXPORT(rt_vd_sens_spo2_init);
 
 #endif
 

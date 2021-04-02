@@ -15,9 +15,8 @@
 #include "sensor.h"
 #include <stdlib.h>
 
-#define DBG_ENABLE
-#define DBG_SECTION_NAME    "v_mag"
-#define DBG_LEVEL           DBG_LOG
+#define DBG_TAG    "v_mag"
+#define DBG_LVL    DBG_INFO
 #include <rtdbg.h>
 
 enum SENS_MAG_ID
