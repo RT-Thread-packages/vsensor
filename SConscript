@@ -46,6 +46,9 @@ if GetDepend(['PKG_USING_VIRTUAL_SENSOR_TEMP']):
 if GetDepend(['PKG_USING_VIRTUAL_SENSOR_TVOC']):
     src += Glob('v_tvoc.c')
 
+if GetDepend(['PKG_USING_VIRTUAL_SENSOR_SPO2']):
+    src += Glob('v_spo2.c')
+
 group = DefineGroup('vsensor', src, depend = ['PKG_USING_VIRTUAL_SENSOR'], CPPPATH = CPPPATH)
 
 Return('group')

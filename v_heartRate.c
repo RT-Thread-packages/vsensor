@@ -99,13 +99,13 @@ static rt_err_t _sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
 static rt_size_t hr_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
 {
     struct rt_sensor_data* data = buf;
-    rt_int16_t max_range = 0;
+    //rt_int16_t max_range = 0;
 
-    max_range = hr_info_tbl[SENS_HR_01].range_max - hr_info_tbl[SENS_HR_01].range_min;
+    //max_range = hr_info_tbl[SENS_HR_01].range_max - hr_info_tbl[SENS_HR_01].range_min;
     data->type = RT_SENSOR_CLASS_HR;
-    data->data.hr = rand() % max_range + hr_info_tbl[SENS_HR_01].range_min;
+    data->data.hr = 65 + rand() % 50;
     data->timestamp = rt_sensor_get_ts();
-    LOG_D("%s:%d", __func__, data->data.hr);
+    //LOG_D("%s:%d", __func__, data->data.hr);
 
     return RT_EOK;
 }

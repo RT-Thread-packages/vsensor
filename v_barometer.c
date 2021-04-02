@@ -99,13 +99,13 @@ static rt_err_t _sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
 static rt_size_t baro_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
 {
     struct rt_sensor_data* data = buf;
-    rt_int16_t max_range = 0;
+    //rt_int16_t max_range = 0;
 
-    max_range = baro_info_tbl[SENS_BARO_01].range_max - baro_info_tbl[SENS_BARO_01].range_min;
+    //max_range = baro_info_tbl[SENS_BARO_01].range_max - baro_info_tbl[SENS_BARO_01].range_min;
     data->type = RT_SENSOR_CLASS_BARO;
-    data->data.baro = rand() % max_range + baro_info_tbl[SENS_BARO_01].range_min;
+    data->data.baro = 900 + rand() % 200;
     data->timestamp = rt_sensor_get_ts();
-    LOG_D("%s:%d", __func__, data->data.baro);
+    //LOG_D("%s:%d", __func__, data->data.baro);
 
     return RT_EOK;
 }
