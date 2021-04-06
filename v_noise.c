@@ -16,7 +16,11 @@
 #include <stdlib.h>
 
 #define DBG_TAG    "v_noise"
-#define DBG_LVL    DBG_INFO
+#ifdef PKG_USING_VIRTUAL_SENSOR_DBG
+    #define DBG_LVL    DBG_LOG
+#else
+    #define DBG_LVL    DBG_INFO
+#endif
 #include <rtdbg.h>
 
 enum SENS_NOISE_ID
