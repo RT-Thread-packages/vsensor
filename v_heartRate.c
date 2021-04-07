@@ -15,9 +15,12 @@
 #include "sensor.h"
 #include <stdlib.h>
 
-#define DBG_ENABLE
-#define DBG_SECTION_NAME    "v_hrate"
-#define DBG_LEVEL           DBG_LOG
+#define DBG_TAG    "v_hrate"
+#ifdef PKG_USING_VIRTUAL_SENSOR_DBG
+    #define DBG_LVL    DBG_LOG
+#else
+    #define DBG_LVL    DBG_INFO
+#endif
 #include <rtdbg.h>
 
 enum SENS_HR_ID
