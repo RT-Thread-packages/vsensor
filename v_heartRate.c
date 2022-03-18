@@ -45,7 +45,7 @@ static struct sens_hr sens_hr_tbl[SENS_HR_MAX] =
 
 static struct rt_sensor_info hr_info_tbl[SENS_HR_MAX] =
 {
-    {RT_SENSOR_CLASS_HR,  RT_SENSOR_VENDOR_STM,   RT_NULL,    RT_SENSOR_UNIT_BPM,      RT_SENSOR_INTF_UART,     200,   0,   1 },
+    {RT_SENSOR_CLASS_HR,  RT_SENSOR_VENDOR_STM,   RT_NULL,    RT_SENSOR_UNIT_BPM,      RT_SENSOR_INTF_UART,     150,   50,   1 },
 };
 
 static rt_uint8_t sensor_get_id(rt_uint8_t sens_index)
@@ -71,7 +71,7 @@ static int sensor_init(rt_uint8_t index)
     return RT_EOK;
 }
 
-static void* _sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
+static void* hr_sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
 {
     if (sensor_init(index) != RT_EOK)
     {
@@ -81,36 +81,54 @@ static void* _sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
     return 0;
 }
 
-static rt_err_t _sensor_set_odr(rt_sensor_t sensor, rt_uint16_t odr)
+static rt_err_t hr_sensor_set_odr(rt_sensor_t sensor, rt_uint16_t odr)
 {
     LOG_D("%s:odr=%d", __func__, odr);
     return RT_EOK;
 }
-static rt_err_t _sensor_set_range(rt_sensor_t sensor, rt_uint16_t range)
+
+static rt_err_t hr_sensor_set_range(rt_sensor_t sensor, rt_uint16_t range)
 {
     LOG_D("%s:range=%d", __func__, range);
     return RT_EOK;
 }
 
-static rt_err_t _sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
+static rt_err_t hr_sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
 {
     rt_int8_t rslt = 0;
     LOG_D("%s:power=%d", __func__, power);
     return rslt;
 }
 
-static rt_size_t hr_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
+static rt_size_t hr_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t size)
 {
     struct rt_sensor_data* data = buf;
     rt_int16_t max_range = 0;
 
-    max_range = hr_info_tbl[SENS_HR_01].range_max - hr_info_tbl[SENS_HR_01].range_min;
-    data->type = RT_SENSOR_CLASS_HR;
-    data->data.hr = rand() % max_range + hr_info_tbl[SENS_HR_01].range_min;
-    data->timestamp = rt_sensor_get_ts();
-    LOG_D("%s:%d", __func__, data->data.hr);
+    if (size < 1)
+    {
+        LOG_E("%s:read size err! size=%d", __func__, size);
+        return 0;
+    }
 
-    return RT_EOK;
+    if (buf == RT_NULL)
+    {
+        LOG_E("%s:read buf is NULL!", __func__);
+        return 0;
+    }
+
+    max_range = hr_info_tbl[SENS_HR_01].range_max - hr_info_tbl[SENS_HR_01].range_min;
+
+    for (int i = 0; i < size; i++)
+    {
+        data->type = RT_SENSOR_CLASS_HR;
+        data->data.hr = rand() % max_range + hr_info_tbl[SENS_HR_01].range_min;
+        data->timestamp = rt_sensor_get_ts();
+        LOG_D("%s:%d", __func__, data->data.hr);
+        data++;
+    }
+
+    return size;
 }
 
 static rt_err_t hr_sensor_control(struct rt_sensor_device* sensor, int cmd, void* args)
@@ -123,13 +141,13 @@ static rt_err_t hr_sensor_control(struct rt_sensor_device* sensor, int cmd, void
         *(rt_uint8_t*)args = sens_hr_tbl[SENS_HR_01].sens_id;
         break;
     case RT_SENSOR_CTRL_SET_ODR:
-        result = _sensor_set_odr(sensor, (rt_uint32_t)args & 0xffff);
+        result = hr_sensor_set_odr(sensor, (rt_uint32_t)args & 0xffff);
         break;
     case RT_SENSOR_CTRL_SET_RANGE:
-        result = _sensor_set_range(sensor, (rt_uint32_t)args);
+        result = hr_sensor_set_range(sensor, (rt_uint32_t)args);
         break;
     case RT_SENSOR_CTRL_SET_POWER:
-        result = _sensor_set_power(sensor, (rt_uint32_t)args & 0xff);
+        result = hr_sensor_set_power(sensor, (rt_uint32_t)args & 0xff);
         break;
     case RT_SENSOR_CTRL_SELF_TEST:
         /* TODO */
@@ -159,11 +177,11 @@ int rt_vd_sens_hr_init(void)
 
     for (index = 0; index < SENS_HR_MAX; index++)
     {
-        _sensor_create(&cfg.intf, index);
+        hr_sensor_create(&cfg.intf, index);
         sensor_dat = rt_calloc(1, sizeof(struct rt_sensor_device));
         if (sensor_dat == RT_NULL)
         {
-            LOG_E("rt_hw_sens_init:rt_calloc err!");
+            LOG_E("%s:rt_calloc err!", __func__);
             return -RT_ERROR;
         }
 
@@ -182,7 +200,7 @@ int rt_vd_sens_hr_init(void)
         result = rt_hw_sensor_register(sensor_dat, sens_hr_tbl[index].dev_name, RT_DEVICE_FLAG_RDWR, RT_NULL);
         if (result != RT_EOK)
         {
-            LOG_E("device register err code: %d", result);
+            LOG_E("%s:device register err code: %d", __func__, result);
             rt_free(sensor_dat);
             return -RT_ERROR;
         }

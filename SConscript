@@ -49,6 +49,9 @@ if GetDepend(['PKG_USING_VIRTUAL_SENSOR_TVOC']):
 if GetDepend(['PKG_USING_VIRTUAL_SENSOR_SPO2']):
     src += Glob('v_spo2.c')
 
+if GetDepend(['PKG_USING_VIRTUAL_SENSOR_BP']):
+    src += Glob('v_bloodpressure.c')
+
 group = DefineGroup('vsensor', src, depend = ['PKG_USING_VIRTUAL_SENSOR'], CPPPATH = CPPPATH)
 
 Return('group')

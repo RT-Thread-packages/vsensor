@@ -71,7 +71,7 @@ static int sensor_init(rt_uint8_t index)
     return RT_EOK;
 }
 
-static void* _sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
+static void* gyro_sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
 {
     if (sensor_init(index) != RT_EOK)
     {
@@ -81,40 +81,57 @@ static void* _sensor_create(struct rt_sensor_intf* intf, rt_uint8_t index)
     return 0;
 }
 
-static rt_err_t _sensor_set_odr(rt_sensor_t sensor, rt_uint16_t odr)
+static rt_err_t gyro_sensor_set_odr(rt_sensor_t sensor, rt_uint16_t odr)
 {
     LOG_D("%s:odr=%d", __func__, odr);
     return RT_EOK;
 }
-static rt_err_t _sensor_set_range(rt_sensor_t sensor, rt_uint16_t range)
+
+static rt_err_t gyro_sensor_set_range(rt_sensor_t sensor, rt_uint16_t range)
 {
     LOG_D("%s:range=%d", __func__, range);
     return RT_EOK;
 }
 
-static rt_err_t _sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
+static rt_err_t gyro_sensor_set_power(rt_sensor_t sensor, rt_uint8_t power)
 {
     rt_int8_t rslt = 0;
     LOG_D("%s:power=%d", __func__, power);
     return rslt;
 }
 
-static rt_size_t gyro_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t len)
+static rt_size_t gyro_sensor_fetch_data(struct rt_sensor_device* sensor, void* buf, rt_size_t size)
 {
     struct rt_sensor_data* data = buf;
     rt_int16_t max_range = 0;
 
+    if (size < 1)
+    {
+        LOG_E("%s:read size err! size=%d", __func__, size);
+        return 0;
+    }
+
+    if (buf == RT_NULL)
+    {
+        LOG_E("%s:read buf is NULL!", __func__);
+        return 0;
+    }
+
     max_range = gyro_info_tbl[SENS_GYRO_01].range_max - gyro_info_tbl[SENS_GYRO_01].range_min;
-    data->type = RT_SENSOR_CLASS_GYRO;
 
-    data->data.gyro.x = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
-    data->data.gyro.y = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
-    data->data.gyro.z = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
-    data->timestamp = rt_sensor_get_ts();
-    LOG_D("%s:%d,%d,%d", __func__, data->data.gyro.x,
-        data->data.gyro.y, data->data.gyro.z);
+    for (int i = 0; i < size; i++)
+    {
+        data->type = RT_SENSOR_CLASS_GYRO;
+        data->data.gyro.x = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
+        data->data.gyro.y = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
+        data->data.gyro.z = rand() % max_range + gyro_info_tbl[SENS_GYRO_01].range_min;
+        data->timestamp = rt_sensor_get_ts();
+        LOG_D("%s:%d,%d,%d", __func__, data->data.gyro.x,
+            data->data.gyro.y, data->data.gyro.z);
+        data++;
+    }
 
-    return RT_EOK;
+    return size;
 }
 
 static rt_err_t gyro_sensor_control(struct rt_sensor_device* sensor, int cmd, void* args)
@@ -127,13 +144,13 @@ static rt_err_t gyro_sensor_control(struct rt_sensor_device* sensor, int cmd, vo
         *(rt_uint8_t*)args = sens_gyro_tbl[SENS_GYRO_01].sens_id;
         break;
     case RT_SENSOR_CTRL_SET_ODR:
-        result = _sensor_set_odr(sensor, (rt_uint32_t)args & 0xffff);
+        result = gyro_sensor_set_odr(sensor, (rt_uint32_t)args & 0xffff);
         break;
     case RT_SENSOR_CTRL_SET_RANGE:
-        result = _sensor_set_range(sensor, (rt_uint32_t)args);
+        result = gyro_sensor_set_range(sensor, (rt_uint32_t)args);
         break;
     case RT_SENSOR_CTRL_SET_POWER:
-        result = _sensor_set_power(sensor, (rt_uint32_t)args & 0xff);
+        result = gyro_sensor_set_power(sensor, (rt_uint32_t)args & 0xff);
         break;
     case RT_SENSOR_CTRL_SELF_TEST:
         /* TODO */
@@ -163,11 +180,11 @@ int rt_vd_sens_gyro_init(void)
 
     for (index = 0; index < SENS_GYRO_MAX; index++)
     {
-        _sensor_create(&cfg.intf, index);
+        gyro_sensor_create(&cfg.intf, index);
         sensor_dat = rt_calloc(1, sizeof(struct rt_sensor_device));
         if (sensor_dat == RT_NULL)
         {
-            LOG_E("rt_hw_sens_init:rt_calloc err!");
+            LOG_E("%s:rt_calloc err!", __func__);
             return -RT_ERROR;
         }
 
@@ -186,7 +203,7 @@ int rt_vd_sens_gyro_init(void)
         result = rt_hw_sensor_register(sensor_dat, sens_gyro_tbl[index].dev_name, RT_DEVICE_FLAG_RDWR, RT_NULL);
         if (result != RT_EOK)
         {
-            LOG_E("device register err code: %d", result);
+            LOG_E("%s:device register err code: %d", __func__, result);
             rt_free(sensor_dat);
             return -RT_ERROR;
         }
